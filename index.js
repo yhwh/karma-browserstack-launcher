@@ -11,14 +11,14 @@ var createBrowserStackTunnel = function(logger, config, emitter) {
     return q();
   }
 
-  log.debug('Establishing the tunnel on %s:%s', config.hostname, config.port);
+  log.debug('Establishing the tunnel on %s:%s', config.clientHostname, config.clientPort);
 
   var deferred = q.defer();
   var tunnel = new BrowserStackTunnel({
     key: process.env.BROWSER_STACK_ACCESS_KEY || bsConfig.accessKey,
     hosts: [{
-      name: config.hostname,
-      port: config.port,
+      name: config.clientHostname,
+      port: config.clientPort,
       sslFlag: 0
     }]
   });
