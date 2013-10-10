@@ -182,8 +182,10 @@ var BEING_TIMEOUTED = 5;
   };
 
   this.kill = function(done) {
+    done = done || function() {};
     if (!workerId || self.state === FINISHED) {
-      done();
+        done();
+      return;
     }
 
     self.state = BEING_KILLED;
