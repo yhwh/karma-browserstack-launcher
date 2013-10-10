@@ -78,7 +78,7 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
 
   this.id = id;
   this.name = browserName;
-
+  var timeoutId = 0;
   var bsConfig = config.browserStack;
 
   var captureTimeout = 0;
@@ -142,7 +142,7 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
           log.debug('%s job started with id %s', browserName, workerId);
 
           if (captureTimeout) {
-            setTimeout(self._onTimeout, captureTimeout);
+            timeoutId = setTimeout(self._onTimeout, captureTimeout);
           }
         };
 
@@ -175,6 +175,7 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
   };
 
   this.kill = function(done) {
+    clearTimeout(timeoutId);
     if (!workerId) {
       done();
     }
