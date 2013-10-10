@@ -64,8 +64,15 @@ var formatError = function(error) {
   return error.toString();
 };
 
+var BEING_CAPTURED = 1;
+var CAPTURED = 2;
+var BEING_KILLED = 3;
+var FINISHED = 4;
+var BEING_TIMEOUTED = 5;
 
-var BrowserStackBrowser = function(id, emitter, args, logger,
+
+
+  var BrowserStackBrowser = function(id, emitter, args, logger,
                                    /* config */ config,
                                    /* browserStackTunnel */ tunnel, /* browserStackClient */ client) {
 
@@ -78,7 +85,7 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
 
   this.id = id;
   this.name = browserName;
-  var timeoutId = 0;
+  self.state = null;
   var bsConfig = config.browserStack;
 
   var captureTimeout = 0;
@@ -95,7 +102,7 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
   }
 
   this.start = function(url) {
-
+    self.state = BEING_CAPTURED;
     // TODO(vojta): handle non os/browser/version
     var settings = {
       os: args.os,
@@ -142,7 +149,7 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
           log.debug('%s job started with id %s', browserName, workerId);
 
           if (captureTimeout) {
-            timeoutId = setTimeout(self._onTimeout, captureTimeout);
+            setTimeout(self._onTimeout, captureTimeout);
           }
         };
 
@@ -175,33 +182,40 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
   };
 
   this.kill = function(done) {
-    clearTimeout(timeoutId);
-    if (!workerId) {
+    if (!workerId || self.state === FINISHED) {
       done();
     }
 
+    self.state = BEING_KILLED;
     log.debug('Killing worker %s', workerId);
-    client.terminateWorker(workerId, done);
+    client.terminateWorker(workerId, function() {
+      self.state = FINISHED;
+      done();
+    });
   };
 
 
   this.markCaptured = function() {
-    captured = true;
+    if (self.state === BEING_CAPTURED) {
+      self.state = CAPTURED;
+    }
   };
 
+
   this.isCaptured = function() {
-    return captured;
+    return self.state === CAPTURED;
   };
+
 
   this.toString = function() {
     return this.name;
   };
 
   this._onTimeout = function() {
-    if (captured) {
+    if (self.state !== BEING_CAPTURED) {
       return;
     }
-    captured = false;
+    self.state = BEING_TIMEOUTED;
     log.warn('%s have not captured in %d ms, killing.', browserName, captureTimeout);
     self.kill(function() {
       if(retryLimit > 0) {
