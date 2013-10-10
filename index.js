@@ -203,8 +203,11 @@ var BrowserStackBrowser = function(id, emitter, args, logger,
     captured = false;
     log.warn('%s have not captured in %d ms, killing.', browserName, captureTimeout);
     self.kill(function() {
-      if(retryLimit--) {
+      if(retryLimit > 0) {
+        retryLimit--;
         self.start(self.url);
+      } else {
+        emitter.emit('browser_process_failure', self);
       }
     });
   };
